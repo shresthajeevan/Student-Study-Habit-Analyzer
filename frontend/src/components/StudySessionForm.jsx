@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Plus, BookOpen, Clock, Calendar, LogIn } from 'lucide-react';
 
-// InputField component
 const InputField = ({
   label,
   icon: Icon,
@@ -15,82 +14,41 @@ const InputField = ({
   onBlur,
   isLoggedIn,
   activeTooltip,
-}) => {
-  return (
-    <div className="relative">
-      <label className="flex items-center gap-2 text-sm font-semibold text-[#374151] mb-2">
-        <div className={`w-5 h-5 ${iconBg} rounded flex items-center justify-center`}>
-          <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
-        </div>
-        {label} <span className="text-[#ef4444]">*</span>
-      </label>
-      <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        placeholder={name === 'subject' ? 'e.g., Mathematics, Physics, History' : ''}
-        className={`w-full px-4 py-3 border-2 rounded-lg outline-none bg-white transition-all duration-200 ${
-          activeTooltip === name && !isLoggedIn
-            ? 'border-orange-400 ring-2 ring-orange-100'
-            : 'border-[#d1d5db] focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]'
-        }`}
-      />
-      {activeTooltip === name && !isLoggedIn && (
-        <div className="absolute -top-2 left-0 transform -translate-y-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm py-2 px-4 rounded-lg z-10 whitespace-nowrap flex items-center gap-2 animate-in fade-in-0 zoom-in-95">
-          <LogIn className="w-4 h-4" />
-          Sign in to start tracking sessions
-          <div className="absolute bottom-0 left-6 transform -translate-x-1/2 translate-y-1/2 w-3 h-3 bg-orange-500 rotate-45"></div>
-        </div>
-      )}
-    </div>
-  );
-};
+}) => (
+  <div className="relative">
+    <label className="flex items-center gap-2 text-sm font-semibold text-[#374151] mb-2">
+      <div className={`w-5 h-5 ${iconBg} rounded flex items-center justify-center`}>
+        <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
+      </div>
+      {label} <span className="text-[#ef4444]">*</span>
+    </label>
+    <input
+      type={type}
+      name={name}
+      value={value}
+      onChange={onChange}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      placeholder={name === 'subject' ? 'e.g., Mathematics, Physics, History' : ''}
+      className={`w-full px-4 py-3 border-2 rounded-lg outline-none bg-white transition-all duration-200 ${
+        activeTooltip === name && !isLoggedIn
+          ? 'border-orange-400 ring-2 ring-orange-100'
+          : 'border-[#d1d5db] focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]'
+      }`}
+    />
+    {activeTooltip === name && !isLoggedIn && (
+      <div className="absolute -top-2 left-0 transform -translate-y-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm py-2 px-4 rounded-lg z-10 whitespace-nowrap flex items-center gap-2 animate-in fade-in-0 zoom-in-95">
+        <LogIn className="w-4 h-4" />
+        Sign in to start tracking sessions
+        <div className="absolute bottom-0 left-6 transform -translate-x-1/2 translate-y-1/2 w-3 h-3 bg-orange-500 rotate-45"></div>
+      </div>
+    )}
+  </div>
+);
 
 function StudySessionForm({ onAddSession, isLoggedIn, showToast }) {
   const [formData, setFormData] = useState({ subject: '', startTime: '', endTime: '' });
   const [activeTooltip, setActiveTooltip] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!isLoggedIn) {
-      showToast('Please login to add study sessions', 'error');
-      return;
-    }
-
-    if (!formData.subject.trim()) {
-      showToast('Please enter a subject', 'error');
-      return;
-    }
-
-    if (!formData.startTime || !formData.endTime) {
-      showToast('Please enter both start and end times', 'error');
-      return;
-    }
-
-    const start = new Date(formData.startTime);
-    const end = new Date(formData.endTime);
-
-    if (end <= start) {
-      showToast('End time must be after start time', 'error');
-      return;
-    }
-
-    onAddSession({
-      id: Date.now().toString(),
-      subject: formData.subject.trim(),
-      startTime: formData.startTime,
-      endTime: formData.endTime,
-      duration: Math.round((end - start) / (1000 * 60)), // minutes
-      date: new Date().toISOString().split('T')[0],
-    });
-
-    setFormData({ subject: '', startTime: '', endTime: '' });
-    showToast('Session added!');
-  };
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -98,16 +56,53 @@ function StudySessionForm({ onAddSession, isLoggedIn, showToast }) {
     setFormData((prev) => ({ ...prev, [name]: newValue }));
   }, []);
 
-  const handleInputFocus = useCallback(
-    (name) => {
-      if (!isLoggedIn) setActiveTooltip(name);
-    },
-    [isLoggedIn]
-  );
+  const handleInputFocus = useCallback((name) => {
+    if (!isLoggedIn) setActiveTooltip(name);
+  }, [isLoggedIn]);
 
-  const handleInputBlur = useCallback(() => {
-    setActiveTooltip('');
-  }, []);
+  const handleInputBlur = useCallback(() => setActiveTooltip(''), []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!isLoggedIn) {
+      showToast('Please login to add study sessions', 'error');
+      return;
+    }
+
+    if (!formData.subject.trim() || !formData.startTime || !formData.endTime) {
+      showToast('Please fill in all fields', 'error');
+      return;
+    }
+
+    const start = new Date(formData.startTime);
+    const end = new Date(formData.endTime);
+    if (end <= start) {
+      showToast('End time must be after start time', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:3000/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important: Send session cookie
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to add session');
+
+      onAddSession(data); // Update UI with new session
+      setFormData({ subject: '', startTime: '', endTime: '' });
+      showToast('Session added successfully!');
+    } catch (err) {
+      console.error(err);
+      showToast(err.message, 'error');
+    }
+  };
 
   return (
     <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-xl p-6 border border-[#e5e7eb] mb-6">

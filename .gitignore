@@ -1,0 +1,108 @@
+# ==========================
+# Node + React Full-Stack Gitignore
+# Project: AI Study Habit Analyzer
+# ==========================
+
+# --------------------------
+# Node modules (frontend + backend)
+# --------------------------
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# --------------------------
+# Environment Variables
+# --------------------------
+.env
+.env.local
+frontend/.env
+frontend/.env.local
+backend/.env
+backend/.env.local
+
+# --------------------------
+# Build Output
+# --------------------------
+# React build
+frontend/build/
+frontend/.next/
+frontend/out/
+
+# Backend build or dist folders
+backend/dist/
+backend/build/
+
+# --------------------------
+# Logs
+# --------------------------
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --------------------------
+# OS and Editor Files
+# --------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
+
+# --------------------------
+# IDE / Editor settings
+# --------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --------------------------
+# Cache and temp files
+# --------------------------
+.cache/
+tmp/
+temp/
+*.pid
+*.seed
+*.pid.lock
+
+# --------------------------
+# Test Coverage and Reports
+# --------------------------
+coverage/
+*.lcov
+
+# --------------------------
+# Dependency directories and package locks (optional)
+# --------------------------
+# Uncomment if you don't want to push lock files:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# --------------------------
+# Miscellaneous
+# --------------------------
+*.tgz
+*.zip
+*.tar
+*.rar
+
+# --------------------------
+# Local runtime data
+# --------------------------
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# --------------------------
+# Environment specific
+# --------------------------
+.env.production
+.env.development
+.env.test
+.env.staging

@@ -7,27 +7,72 @@ function StudySessionList({ sessions, onEditSession, onDeleteSession }) {
 
   const startEdit = (s) => {
     setEditingId(s.id);
-    setEditForm({ subject: s.subject, startTime: s.startTime, endTime: s.endTime });
+    
+    // Format dates for datetime-local input
+    const startFormatted = new Date(s.startTime).toISOString().slice(0, 16);
+    const endFormatted = new Date(s.endTime).toISOString().slice(0, 16);
+    
+    setEditForm({ 
+      subject: s.subject, 
+      startTime: startFormatted, 
+      endTime: endFormatted 
+    });
   };
 
-  const saveEdit = (id) => {
-    if (!editForm.subject?.trim() || !editForm.startTime || !editForm.endTime) return alert('Please fill all fields');
+  const saveEdit = async (id) => {
+    if (!editForm.subject?.trim() || !editForm.startTime || !editForm.endTime) {
+      return alert('Please fill all fields');
+    }
 
     const start = new Date(editForm.startTime);
     const end = new Date(editForm.endTime);
-    if (end <= start || isNaN(start) || isNaN(end)) return alert('Invalid time range');
+    if (end <= start || isNaN(start) || isNaN(end)) {
+      return alert('Invalid time range');
+    }
 
-    onEditSession({
-      id,
-      subject: editForm.subject.trim(),
-      startTime: editForm.startTime,
-      endTime: editForm.endTime,
-      duration: Math.round((end - start) / 60000),
-      date: new Date(editForm.startTime).toISOString().split('T')[0],
-    });
+    try {
+      const res = await fetch(`http://localhost:3000/api/sessions/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          subject: editForm.subject.trim(),
+          startTime: editForm.startTime,
+          endTime: editForm.endTime,
+        }),
+      });
 
-    setEditingId(null);
-    setEditForm({});
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update session');
+
+      onEditSession(data);
+      setEditingId(null);
+      setEditForm({});
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this session?')) return;
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/sessions/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to delete session');
+
+      onDeleteSession(id);
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
   };
 
   const formatDateTime = (dt) => {
@@ -104,7 +149,7 @@ function StudySessionList({ sessions, onEditSession, onDeleteSession }) {
           <button onClick={() => startEdit(s)} className="flex-1 md:flex-none px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-1 border border-green-400">
             <Edit2 className="w-4 h-4" />Edit
           </button>
-          <button onClick={() => onDeleteSession(s.id)} className="flex-1 md:flex-none px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-1 border border-red-400">
+          <button onClick={() => handleDelete(s.id)} className="flex-1 md:flex-none px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-1 border border-red-400">
             <Trash2 className="w-4 h-4" />Delete
           </button>
         </div>

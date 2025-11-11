@@ -1,11 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  BookOpen,
-  BarChart3,
-  Lightbulb,
-  FileQuestion,
-  User,
-} from "lucide-react";
+import { BookOpen, BarChart3, Lightbulb, FileQuestion } from "lucide-react";
 import StudySessionForm from "./components/StudySessionForm";
 import StudySessionList from "./components/StudySessionList";
 import Dashboard from "./components/Dashboard";
@@ -13,6 +7,29 @@ import Recommendations from "./components/Recommendations";
 import Quiz from "./components/Quiz";
 import Toast from "./components/Toast";
 import AuthPage from "./components/AuthPage";
+import { checkSession, logout } from "./api/auth";
+
+const TABS = [
+  { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+  { id: "tracker", label: "Sessions", icon: BookOpen },
+  { id: "recommendations", label: "Insights", icon: Lightbulb },
+  { id: "quiz", label: "Practice", icon: FileQuestion },
+];
+
+const TabButton = ({ tab, active, onClick }) => {
+  const Icon = tab.icon;
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all ${
+        active ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-gray-100"
+      }`}
+    >
+      <Icon className="w-5 h-5" />
+      {tab.label}
+    </button>
+  );
+};
 
 function App() {
   const [user, setUser] = useState(null);
@@ -20,75 +37,64 @@ function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sessions, setSessions] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [showAuthPage, setShowAuthPage] = useState(false);
+
+  const showToast = (message, type = "success") => setToast({ show: true, message, type });
+
+  const fetchSessions = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/sessions', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (res.ok) setSessions(await res.json());
+    } catch (err) {
+      console.error("Error fetching sessions:", err);
+    }
+  };
 
   useEffect(() => {
-    const saved = localStorage.getItem("currentUser");
-    if (saved) {
-      const parsedUser = JSON.parse(saved);
-      setUser(parsedUser);
-
-      const savedSessions = localStorage.getItem(`studySessions_${parsedUser.id}`);
-      setSessions(savedSessions ? JSON.parse(savedSessions) : []);
-    }
-    setLoadingUser(false);
+    (async () => {
+      try {
+        const response = await checkSession();
+        if (response.loggedIn && response.user) {
+          setUser(response.user);
+          await fetchSessions();
+        }
+      } catch (err) {
+        console.error("Session check failed:", err);
+      } finally {
+        setLoadingUser(false);
+      }
+    })();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem(`studySessions_${user.id}`, JSON.stringify(sessions));
-    }
-  }, [sessions, user]);
-
-  const showToast = (message, type = "success") =>
-    setToast({ show: true, message, type });
-
-  const handleLogin = (userData) => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const existingUser = users.find(
-      (u) => u.username === userData.username && u.password === userData.password
-    );
-
-    if (existingUser) {
-      setUser(existingUser);
-      localStorage.setItem("currentUser", JSON.stringify(existingUser));
-
-      const savedSessions = localStorage.getItem(`studySessions_${existingUser.id}`);
-      setSessions(savedSessions ? JSON.parse(savedSessions) : []);
-
-      showToast(`Welcome back, ${existingUser.username}!`);
-    } else {
-      showToast("Invalid username or password", "error");
-    }
+  const handleAuth = async (userData, isSignup) => {
+    setUser(userData);
+    showToast(`${isSignup ? 'Welcome' : 'Welcome back'}, ${userData.username}!`);
+    setShowAuthPage(false);
+    setActiveTab("dashboard");
+    if (!isSignup) await fetchSessions();
+    else setSessions([]);
   };
 
-  const handleSignup = (userData) => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    if (users.find((u) => u.username === userData.username)) {
-      showToast("Username already exists", "error");
-      return;
-    }
-
-    const newUser = { ...userData, id: Date.now() };
-    users.push(newUser);
-    localStorage.setItem("users", JSON.stringify(users));
-    localStorage.setItem("currentUser", JSON.stringify(newUser));
-    setUser(newUser);
-    setSessions([]);
-    showToast(`Welcome, ${newUser.username}!`);
-  };
-
-  const handleLogout = () => {
-    if (window.confirm("Log out?")) {
-      localStorage.removeItem("currentUser");
+  const handleLogout = async () => {
+    if (!window.confirm("Are you sure you want to log out?")) return;
+    try {
+      await logout();
       setUser(null);
       setSessions([]);
-      showToast("Logged out");
+      showToast("Logged out successfully");
+      setActiveTab("dashboard");
+    } catch (err) {
+      console.error("Logout error:", err);
+      showToast("Logout failed", "error");
     }
   };
 
   const handleFeatureAccess = () => {
     if (!user) {
-      showToast("Login to use this feature", "error");
+      showToast("Please login to use this feature", "error");
       return false;
     }
     return true;
@@ -97,104 +103,110 @@ function App() {
   const totalMinutes = sessions.reduce((sum, s) => sum + s.duration, 0);
   const totalHours = (totalMinutes / 60).toFixed(1);
 
-  const tabs = [
-    { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-    { id: "tracker", label: "Sessions", icon: BookOpen },
-    { id: "recommendations", label: "Insights", icon: Lightbulb },
-    { id: "quiz", label: "Practice", icon: FileQuestion },
-  ];
+  if (loadingUser) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (loadingUser) return <div className="h-screen flex items-center justify-center">Loading...</div>;
-  if (!user) return <AuthPage onLogin={handleLogin} onSignup={handleSignup} />;
+  if (showAuthPage && !user) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-gray-50">
+        <AuthPage onLogin={(u) => handleAuth(u, false)} onSignup={(u) => handleAuth(u, true)} />
+        <Toast message={toast.message} type={toast.type} show={toast.show} onClose={() => setToast({ ...toast, show: false })} />
+      </div>
+    );
+  }
+
+  const renderContent = () => {
+    const contentMap = {
+      dashboard: <Dashboard sessions={sessions} />,
+      recommendations: <Recommendations sessions={sessions} />,
+      quiz: <Quiz sessions={sessions} />,
+      tracker: (
+        <div className="space-y-6">
+          <StudySessionForm
+            onAddSession={(newSession) => {
+              if (!handleFeatureAccess()) return;
+              setSessions([newSession, ...sessions]);
+              showToast("Session added!");
+            }}
+            isLoggedIn={!!user}
+            showToast={showToast}
+          />
+          <StudySessionList
+            sessions={sessions}
+            onEditSession={(updatedSession) => {
+              if (!handleFeatureAccess()) return;
+              setSessions(sessions.map((s) => (s.id === updatedSession.id ? updatedSession : s)));
+              showToast("Session updated!");
+            }}
+            onDeleteSession={(id) => {
+              if (!handleFeatureAccess()) return;
+              setSessions(sessions.filter((s) => s.id !== id));
+              showToast("Session deleted!");
+            }}
+          />
+        </div>
+      ),
+    };
+    return contentMap[activeTab];
+  };
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-  {/* Sidebar */}
-  <aside className="w-64 h-screen fixed flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
-    <div className="p-6 flex items-center gap-3">
-      <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-        <BookOpen className="w-6 h-6 text-white" />
-      </div>
-      <div>
-        <h1 className="text-lg font-bold text-gray-900">AI Study Tracker</h1>
-        <p className="text-sm text-gray-500">AI-Powered Learning</p>
-      </div>
-    </div>
+      {/* Sidebar */}
+      <aside className="w-64 h-screen fixed flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
+        <div className="p-6 flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <BookOpen className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">AI Study Tracker</h1>
+            <p className="text-sm text-gray-500">AI-Powered Learning</p>
+          </div>
+        </div>
 
-    <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        return (
+        <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
+          {TABS.map((tab) => (
+            <TabButton key={tab.id} tab={tab} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} />
+          ))}
+        </nav>
+
+        {/* User Info & Login/Logout */}
+        <div className="p-6 border-t border-gray-200">
+          {user && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-semibold text-blue-900">{user.username}</p>
+              <p className="text-xs text-blue-600">{user.email}</p>
+            </div>
+          )}
+          
+          <div className="text-sm text-gray-600 space-y-1">
+            <div>Total Sessions: <span className="font-semibold">{sessions.length}</span></div>
+            <div>Time Studied: <span className="font-semibold">{totalHours}h</span></div>
+          </div>
+
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-gray-700 hover:bg-gray-100 transition-all ${
-              activeTab === tab.id ? "bg-blue-600 text-white" : ""
-            }`}
+            onClick={user ? handleLogout : () => setShowAuthPage(true)}
+            className={`mt-4 w-full ${user ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white py-2 rounded-lg transition-all font-semibold`}
           >
-            <Icon className="w-5 h-5" />
-            {tab.label}
+            {user ? "Logout" : "Login"}
           </button>
-        );
-      })}
-    </nav>
+        </div>
+      </aside>
 
-    <div className="p-6 border-t border-gray-200">
-      <div className="text-sm text-gray-600">Total Sessions: {sessions.length}</div>
-      <div className="text-sm text-gray-600">Time Studied: {totalHours}h</div>
-      <button
-        onClick={handleLogout}
-        className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-all"
-      >
-        Logout
-      </button>
+      {/* Main Content */}
+      <main className="flex-1 p-8 overflow-auto ml-64">{renderContent()}</main>
+
+      {/* Toast */}
+      <Toast message={toast.message} type={toast.type} show={toast.show} onClose={() => setToast({ ...toast, show: false })} />
     </div>
-  </aside>
-
-  {/* Main content */}
-  <main className="flex-1 p-8 overflow-auto ml-64">
-    {activeTab === "dashboard" && <Dashboard sessions={sessions} />}
-    {activeTab === "tracker" && (
-      <div className="space-y-6">
-        <StudySessionForm
-          onAddSession={(s) => {
-            if (!handleFeatureAccess()) return;
-            setSessions([...sessions, s]);
-            showToast("Session added!");
-          }}
-          isLoggedIn={!!user}  // Pass login state
-          showToast={showToast}
-        />
-        <StudySessionList
-          sessions={sessions}
-          onEditSession={(u) => {
-            if (!handleFeatureAccess()) return;
-            setSessions(sessions.map((s) => (s.id === u.id ? u : s)));
-            showToast("Updated!");
-          }}
-          onDeleteSession={(id) => {
-            if (!handleFeatureAccess()) return;
-            if (window.confirm("Delete?")) {
-              setSessions(sessions.filter((s) => s.id !== id));
-              showToast("Deleted!");
-            }
-          }}
-        />
-      </div>
-    )}
-    {activeTab === "recommendations" && <Recommendations sessions={sessions} />}
-    {activeTab === "quiz" && <Quiz sessions={sessions} />}
-  </main>
-
-  {/* Toast */}
-  <Toast
-    message={toast.message}
-    type={toast.type}
-    show={toast.show}
-    onClose={() => setToast({ ...toast, show: false })}
-  />
-</div>
-
   );
 }
 

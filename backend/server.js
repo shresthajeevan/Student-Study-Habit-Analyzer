@@ -4,12 +4,20 @@ import dotenv from "dotenv";
 import cors from "cors";
 import session from "express-session";
 import MongoStore from "connect-mongo";
+import path from "path";
+import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
+import goalRoutes from "./routes/goalRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 
 dotenv.config();
 
 const app = express();
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // CORS configuration - allow credentials
 app.use(cors({
@@ -18,6 +26,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
@@ -45,6 +56,8 @@ app.use(session({
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/goals", goalRoutes);
+app.use("/api/uploadNotes", uploadRoutes);
 
 app.get("/", (req, res) => res.send("Server is running"));
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, BarChart3, Lightbulb, FileQuestion } from "lucide-react";
+import { BookOpen, BarChart3, Lightbulb, FileQuestion, FileText } from "lucide-react";
 import StudySessionForm from "./components/StudySessionForm";
 import StudySessionList from "./components/StudySessionList";
 import Dashboard from "./components/Dashboard";
@@ -7,13 +7,18 @@ import Recommendations from "./components/Recommendations";
 import Quiz from "./components/Quiz";
 import Toast from "./components/Toast";
 import AuthPage from "./components/AuthPage";
+import UploadNotes from "./components/UploadNotes"; // new component
 import { checkSession, logout } from "./api/auth";
+import { StudyGoals } from "./components/StudyGoals"; // use the self-contained version
+
 
 const TABS = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
   { id: "tracker", label: "Sessions", icon: BookOpen },
   { id: "recommendations", label: "Insights", icon: Lightbulb },
   { id: "quiz", label: "Practice", icon: FileQuestion },
+  { id: "uploadNotes", label: "Upload Notes", icon: FileText }, // new tab
+  { id: "studyGoals", label: "Study Goals", icon: FileText }, 
 ];
 
 const TabButton = ({ tab, active, onClick }) => {
@@ -154,6 +159,8 @@ function App() {
           />
         </div>
       ),
+      uploadNotes: <UploadNotes showToast={showToast} />,
+      studyGoals: <StudyGoals sessions={sessions} />, // new tab content
     };
     return contentMap[activeTab];
   };

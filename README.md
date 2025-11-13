@@ -1,6 +1,3 @@
-Got it! Here's the **entire README content** fully inside Markdown, ready for a single copy-paste:
-
-````markdown
 # Study Habit Analyzer - AI-Powered Study Tracker
 
 An AI-powered study tracker web application built with React.js, Tailwind CSS, Express, and MongoDB. Track your study sessions, view analytics, receive AI recommendations, and take AI-generated quizzes from uploaded study materials.

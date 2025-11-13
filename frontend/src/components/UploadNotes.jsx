@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
-import { Upload, X, Sparkles, FileText } from "lucide-react";
+import { Upload, X, Sparkles, FileText, Zap } from "lucide-react";
 import { uploadFiles } from "../api/upload";
+import { generateQuiz } from "../api/quiz";
 
 const Button = ({ children, onClick, className, type = "button", disabled }) => (
   <button
@@ -16,6 +17,8 @@ const Button = ({ children, onClick, className, type = "button", disabled }) => 
 const UploadNotes = ({ showToast }) => {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [generatingQuiz, setGeneratingQuiz] = useState(false);
   const fileInputRef = useRef();
 
   const handleFiles = (newFiles) => {
@@ -45,6 +48,9 @@ const UploadNotes = ({ showToast }) => {
       
       showToast?.(`Successfully uploaded ${response.files.length} file(s)!`);
       
+      // Store uploaded files for quiz generation
+      setUploadedFiles(response.files);
+      
       // Clean up previews and clear files
       files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
       setFiles([]);
@@ -53,6 +59,35 @@ const UploadNotes = ({ showToast }) => {
       showToast?.(err.message || "Upload failed", "error");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleGenerateQuiz = async (uploadedFile) => {
+    const subject = prompt("Enter the subject for this quiz (e.g., Mathematics, Physics):");
+    if (!subject || !subject.trim()) {
+      showToast?.("Subject is required to generate quiz", "error");
+      return;
+    }
+
+    const difficulty = prompt("Enter difficulty (easy, medium, hard):", "medium");
+    const validDifficulties = ["easy", "medium", "hard"];
+    const finalDifficulty = validDifficulties.includes(difficulty?.toLowerCase()) 
+      ? difficulty.toLowerCase() 
+      : "medium";
+
+    try {
+      setGeneratingQuiz(true);
+      const response = await generateQuiz(uploadedFile.id, subject.trim(), finalDifficulty);
+      
+      showToast?.(`Quiz generated successfully! ${response.quiz.totalQuestions} questions created.`);
+      
+      // Remove from uploaded files list after quiz generation
+      setUploadedFiles(prev => prev.filter(f => f.id !== uploadedFile.id));
+    } catch (err) {
+      console.error("Quiz generation error:", err);
+      showToast?.(err.message || "Failed to generate quiz", "error");
+    } finally {
+      setGeneratingQuiz(false);
     }
   };
 
@@ -103,13 +138,37 @@ const UploadNotes = ({ showToast }) => {
               {uploading ? "Uploading..." : `Upload ${files.length > 0 ? `(${files.length})` : ""}`}
             </Button>
           </div>
+
+          {/* Recently Uploaded Files - with quiz generation */}
+          {uploadedFiles.length > 0 && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+              <h3 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Generate Quiz from Uploaded Files
+              </h3>
+              <div className="space-y-2">
+                {uploadedFiles.map((file) => (
+                  <div key={file.id} className="flex items-center justify-between p-2 bg-white rounded-lg">
+                    <span className="text-sm text-gray-700 truncate flex-1">{file.originalName}</span>
+                    <button
+                      onClick={() => handleGenerateQuiz(file)}
+                      disabled={generatingQuiz}
+                      className="ml-2 px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+                    >
+                      {generatingQuiz ? "Generating..." : "Generate Quiz"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Preview + Info */}
         <div className="flex flex-col gap-6 w-[40%]">
           {/* Preview Card */}
           <div className="bg-white rounded-3xl p-6 border border-gray-200 flex flex-col gap-4">
-            <h2 className="text-xl font-semibold text-gray-800">Your Uploaded Files</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Your Selected Files</h2>
             {files.length === 0 ? (
               <p className="text-gray-500 text-sm">No files selected yet</p>
             ) : (
@@ -146,14 +205,15 @@ const UploadNotes = ({ showToast }) => {
           {/* Info Card */}
           <div className="bg-white rounded-3xl p-6 border border-gray-200 flex flex-col gap-4">
             <FileText className="w-14 h-14 text-gray-500" />
-            <h2 className="text-2xl font-semibold text-gray-800">Why Upload Notes?</h2>
+            <h2 className="text-2xl font-semibold text-gray-800">How It Works</h2>
             <ul className="text-gray-700 space-y-2 text-base">
-              <li>📘 Generate interactive quizzes from your notes</li>
-              <li>⚡ Summarize and extract key ideas quickly</li>
-              <li>🎯 Enhance your learning with smart insights</li>
+              <li>📤 Upload your study notes (images, PDFs, text files)</li>
+              <li>🤖 AI analyzes the content automatically</li>
+              <li>📝 Generate custom multiple-choice quizzes</li>
+              <li>🎯 Test your knowledge and track progress</li>
             </ul>
             <p className="text-sm text-gray-600">
-              Your files stay private and secure — used only for quiz generation.
+              Your files are securely processed and stored. Only you can access your quizzes.
             </p>
           </div>
         </div>

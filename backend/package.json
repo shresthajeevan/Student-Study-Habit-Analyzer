@@ -12,6 +12,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^1.29.0",
+    "@google/generative-ai": "^0.24.1",
     "bcrypt": "^6.0.0",
     "connect-mongo": "^5.1.0",
     "cors": "^2.8.5",

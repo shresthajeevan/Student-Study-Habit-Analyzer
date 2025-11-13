@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, BarChart3, Lightbulb, FileQuestion, FileText } from "lucide-react";
+import { BookOpen, BarChart3, Lightbulb, FileQuestion, FileText, Target } from "lucide-react";
 import StudySessionForm from "./components/StudySessionForm";
 import StudySessionList from "./components/StudySessionList";
 import Dashboard from "./components/Dashboard";
@@ -7,18 +7,17 @@ import Recommendations from "./components/Recommendations";
 import Quiz from "./components/Quiz";
 import Toast from "./components/Toast";
 import AuthPage from "./components/AuthPage";
-import UploadNotes from "./components/UploadNotes"; // new component
+import UploadNotes from "./components/UploadNotes";
 import { checkSession, logout } from "./api/auth";
-import { StudyGoals } from "./components/StudyGoals"; // use the self-contained version
-
+import { StudyGoals } from "./components/StudyGoals";
 
 const TABS = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
   { id: "tracker", label: "Sessions", icon: BookOpen },
+  { id: "studyGoals", label: "Goals", icon: Target },
+  { id: "uploadNotes", label: "Upload Notes", icon: FileText },
+  { id: "quiz", label: "Quiz", icon: FileQuestion },
   { id: "recommendations", label: "Insights", icon: Lightbulb },
-  { id: "quiz", label: "Practice", icon: FileQuestion },
-  { id: "uploadNotes", label: "Upload Notes", icon: FileText }, // new tab
-  { id: "studyGoals", label: "Study Goals", icon: FileText }, 
 ];
 
 const TabButton = ({ tab, active, onClick }) => {
@@ -48,9 +47,9 @@ function App() {
 
   const fetchSessions = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/sessions', {
-        method: 'GET',
-        credentials: 'include',
+      const res = await fetch("http://localhost:3000/api/sessions", {
+        method: "GET",
+        credentials: "include",
       });
       if (res.ok) setSessions(await res.json());
     } catch (err) {
@@ -76,7 +75,7 @@ function App() {
 
   const handleAuth = async (userData, isSignup) => {
     setUser(userData);
-    showToast(`${isSignup ? 'Welcome' : 'Welcome back'}, ${userData.username}!`);
+    showToast(`${isSignup ? "Welcome" : "Welcome back"}, ${userData.username}!`);
     setShowAuthPage(false);
     setActiveTab("dashboard");
     if (!isSignup) await fetchSessions();
@@ -122,8 +121,16 @@ function App() {
   if (showAuthPage && !user) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gray-50">
-        <AuthPage onLogin={(u) => handleAuth(u, false)} onSignup={(u) => handleAuth(u, true)} />
-        <Toast message={toast.message} type={toast.type} show={toast.show} onClose={() => setToast({ ...toast, show: false })} />
+        <AuthPage
+          onLogin={(u) => handleAuth(u, false)}
+          onSignup={(u) => handleAuth(u, true)}
+        />
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          show={toast.show}
+          onClose={() => setToast({ ...toast, show: false })}
+        />
       </div>
     );
   }
@@ -131,8 +138,13 @@ function App() {
   const renderContent = () => {
     const contentMap = {
       dashboard: <Dashboard sessions={sessions} />,
-      recommendations: <Recommendations sessions={sessions} />,
-      quiz: <Quiz sessions={sessions} />,
+      recommendations: (
+        <Recommendations
+          sessions={sessions}
+          showToast={showToast}
+        />
+      ),
+      quiz: <Quiz showToast={showToast} />,
       tracker: (
         <div className="space-y-6">
           <StudySessionForm
@@ -148,7 +160,9 @@ function App() {
             sessions={sessions}
             onEditSession={(updatedSession) => {
               if (!handleFeatureAccess()) return;
-              setSessions(sessions.map((s) => (s.id === updatedSession.id ? updatedSession : s)));
+              setSessions(
+                sessions.map((s) => (s.id === updatedSession.id ? updatedSession : s))
+              );
               showToast("Session updated!");
             }}
             onDeleteSession={(id) => {
@@ -160,7 +174,7 @@ function App() {
         </div>
       ),
       uploadNotes: <UploadNotes showToast={showToast} />,
-      studyGoals: <StudyGoals sessions={sessions} />, // new tab content
+      studyGoals: <StudyGoals sessions={sessions} showToast={showToast} />,
     };
     return contentMap[activeTab];
   };
@@ -181,7 +195,12 @@ function App() {
 
         <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
           {TABS.map((tab) => (
-            <TabButton key={tab.id} tab={tab} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} />
+            <TabButton
+              key={tab.id}
+              tab={tab}
+              active={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+            />
           ))}
         </nav>
 
@@ -193,15 +212,21 @@ function App() {
               <p className="text-xs text-blue-600">{user.email}</p>
             </div>
           )}
-          
+
           <div className="text-sm text-gray-600 space-y-1">
-            <div>Total Sessions: <span className="font-semibold">{sessions.length}</span></div>
-            <div>Time Studied: <span className="font-semibold">{totalHours}h</span></div>
+            <div>
+              Total Sessions: <span className="font-semibold">{sessions.length}</span>
+            </div>
+            <div>
+              Time Studied: <span className="font-semibold">{totalHours}h</span>
+            </div>
           </div>
 
           <button
             onClick={user ? handleLogout : () => setShowAuthPage(true)}
-            className={`mt-4 w-full ${user ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'} text-white py-2 rounded-lg transition-all font-semibold`}
+            className={`mt-4 w-full ${
+              user ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"
+            } text-white py-2 rounded-lg transition-all font-semibold`}
           >
             {user ? "Logout" : "Login"}
           </button>
@@ -212,7 +237,12 @@ function App() {
       <main className="flex-1 p-8 overflow-auto ml-64">{renderContent()}</main>
 
       {/* Toast */}
-      <Toast message={toast.message} type={toast.type} show={toast.show} onClose={() => setToast({ ...toast, show: false })} />
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        show={toast.show}
+        onClose={() => setToast({ ...toast, show: false })}
+      />
     </div>
   );
 }

@@ -10,8 +10,18 @@ import authRoutes from "./routes/auth.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
 import goalRoutes from "./routes/goalRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import quizRoutes from "./routes/quizRoutes.js";
+import recommendationRoutes from "./routes/recommendationRoutes.js";
 
 dotenv.config();
+
+// DEBUG: Check if Gemini API key is loaded
+console.log("===== API KEY DEBUG =====");
+console.log("✅ API Key exists:", !!process.env.GEMINI_API_KEY);
+console.log("📏 API Key length:", process.env.GEMINI_API_KEY?.length || 0);
+console.log("🔤 API Key first 10 chars:", process.env.GEMINI_API_KEY?.substring(0, 10) || "MISSING");
+console.log("🔤 API Key last 5 chars:", process.env.GEMINI_API_KEY?.substring(process.env.GEMINI_API_KEY?.length - 5) || "MISSING");
+console.log("========================\n");
 
 const app = express();
 
@@ -58,8 +68,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/goals", goalRoutes);
 app.use("/api/uploadNotes", uploadRoutes);
+app.use("/api/quizzes", quizRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 
-app.get("/", (req, res) => res.send("Server is running"));
+app.get("/", (req, res) => res.send("Server is running with AI features"));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

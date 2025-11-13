@@ -16,12 +16,7 @@ import recommendationRoutes from "./routes/recommendationRoutes.js";
 dotenv.config();
 
 // DEBUG: Check if Gemini API key is loaded
-console.log("===== API KEY DEBUG =====");
 console.log("✅ API Key exists:", !!process.env.GEMINI_API_KEY);
-console.log("📏 API Key length:", process.env.GEMINI_API_KEY?.length || 0);
-console.log("🔤 API Key first 10 chars:", process.env.GEMINI_API_KEY?.substring(0, 10) || "MISSING");
-console.log("🔤 API Key last 5 chars:", process.env.GEMINI_API_KEY?.substring(process.env.GEMINI_API_KEY?.length - 5) || "MISSING");
-console.log("========================\n");
 
 const app = express();
 

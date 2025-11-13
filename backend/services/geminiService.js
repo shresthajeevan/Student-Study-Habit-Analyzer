@@ -4,19 +4,15 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
-// Load environment variables from .env file
+// Load environment variables
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Gemini AI with API key from .env
+// Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// Always use gemini-2.5-flash
 const MODEL_NAME = "gemini-2.5-flash";
-
-// Get the Gemini model
 const getModel = () => genAI.getGenerativeModel({ model: MODEL_NAME });
 
 // ======================
@@ -27,36 +23,30 @@ export const generateQuizFromText = async (content, subject, difficulty = "mediu
     const model = getModel();
 
     const prompt = `You are an expert teacher creating educational quizzes.
-
 Based on the following study notes about "${subject}":
 
 ${content}
 
-Generate exactly 10 multiple-choice questions that test understanding of the key concepts.
+Generate exactly 10 multiple-choice questions that test understanding of key concepts.
 
 Requirements:
-- Difficulty level: ${difficulty}
-- Each question must have exactly 4 options
-- Questions should cover different topics from the content
+- Difficulty: ${difficulty}
+- Each question must have 4 options
 - Include clear explanations for correct answers
-
-Return ONLY a valid JSON array in this exact format (no markdown, no extra text):
+- Return ONLY a valid JSON array in this format:
 [
   {
-    "question": "Question text here?",
+    "question": "Question text",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": 0,
-    "explanation": "Brief explanation of why this is correct"
+    "explanation": "Why this answer is correct"
   }
-]
-
-The correctAnswer should be the index (0-3) of the correct option.`;
+]`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const text = (await result.response).text();
 
-    let cleanText = text.replace(/```json\n?|```\n?/g, '').trim();
+    const cleanText = text.replace(/```json\n?|```\n?/g, '').trim();
     const questions = JSON.parse(cleanText);
 
     // Validation
@@ -72,7 +62,7 @@ The correctAnswer should be the index (0-3) of the correct option.`;
     return questions;
   } catch (err) {
     console.error("Error generating quiz from text:", err);
-    throw new Error("Failed to generate quiz: " + err.message);
+    throw new Error("Failed to generate quiz from text: " + err.message);
   }
 };
 
@@ -97,45 +87,39 @@ export const generateQuizFromImage = async (imagePath, subject, difficulty = "me
     const mimeType = mimeTypes[ext] || "image/jpeg";
 
     const prompt = `You are an expert teacher creating educational quizzes.
-
 Analyze this image which contains study notes about "${subject}".
 
-Extract the key concepts and information from the image, then generate exactly 10 multiple-choice questions.
+Extract key concepts and generate 10 multiple-choice questions.
 
 Requirements:
-- Difficulty level: ${difficulty}
-- Each question must have exactly 4 options
-- Questions should cover different topics from the content
-- Include clear explanations for correct answers
-
-Return ONLY a valid JSON array in this exact format (no markdown, no extra text):
+- Difficulty: ${difficulty}
+- Each question must have 4 options
+- Include explanations
+- Return ONLY a valid JSON array in this format:
 [
   {
-    "question": "Question text here?",
+    "question": "Question text",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": 0,
-    "explanation": "Brief explanation of why this is correct"
+    "explanation": "Why this answer is correct"
   }
-]
-
-The correctAnswer should be the index (0-3) of the correct option.`;
+]`;
 
     const result = await model.generateContent([
       prompt,
       {
         inlineData: {
-          mimeType: mimeType,
+          mimeType,
           data: base64Image,
         },
       },
     ]);
 
-    const response = await result.response;
-    const text = response.text();
-
-    let cleanText = text.replace(/```json\n?|```\n?/g, '').trim();
+    const text = (await result.response).text();
+    const cleanText = text.replace(/```json\n?|```\n?/g, '').trim();
     const questions = JSON.parse(cleanText);
 
+    // Validation
     questions.forEach((q, idx) => {
       if (!q.question || !Array.isArray(q.options) || q.options.length !== 4) {
         throw new Error(`Invalid question at index ${idx}`);
@@ -198,7 +182,7 @@ Priority should be: high, medium, or low`;
     const response = await result.response;
     const text = response.text();
 
-    let cleanText = text.replace(/```json\n?|```\n?/g, '').trim();
+    const cleanText = text.replace(/```json\n?|```\n?/g, '').trim();
     const recommendations = JSON.parse(cleanText);
 
     if (!Array.isArray(recommendations)) {

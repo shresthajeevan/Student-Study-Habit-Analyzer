@@ -7,8 +7,12 @@ import QuizResult from "../models/QuizResult.js";
 import Upload from "../models/Upload.js";
 import { generateQuizFromText, generateQuizFromImage } from "../services/geminiService.js";
 
-const router = express.Router();
+// Fix PDF-parse import for ESM
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 
+const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -20,7 +24,23 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
+// PDF parsing helper
+const parsePDF = async (pdfBuffer) => {
+  try {
+    const data = await pdfParse(pdfBuffer);
+    if (!data?.text || data.text.trim().length === 0) {
+      throw new Error("PDF appears empty or has no extractable text");
+    }
+    return data.text;
+  } catch (err) {
+    console.error("Error parsing PDF:", err);
+    throw new Error("Failed to parse PDF: " + err.message);
+  }
+};
+
+// ================================
 // POST - Generate quiz from uploaded file
+// ================================
 router.post("/generate", requireAuth, async (req, res) => {
   try {
     const { uploadId, subject, difficulty } = req.body;
@@ -29,18 +49,15 @@ router.post("/generate", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "Upload ID and subject are required" });
     }
 
-    // Find the upload
     const upload = await Upload.findById(uploadId);
     if (!upload) {
       return res.status(404).json({ message: "Upload not found" });
     }
 
-    // Verify ownership
     if (upload.userId.toString() !== req.session.userId.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Check if quiz already exists for this upload
     const existingQuiz = await Quiz.findOne({ uploadId, userId: req.session.userId });
     if (existingQuiz) {
       return res.status(400).json({ 
@@ -50,28 +67,25 @@ router.post("/generate", requireAuth, async (req, res) => {
     }
 
     const filePath = path.join(__dirname, "..", upload.path);
-
     let questions;
 
-    // Generate quiz based on file type
     if (upload.fileType === "image") {
-      // Generate from image
       questions = await generateQuizFromImage(filePath, subject, difficulty || "medium");
-    } else if (upload.fileType === "pdf" || upload.fileType === "document") {
-      // For now, if it's a text file, read it
+    } else if (upload.fileType === "pdf") {
+      const pdfBuffer = fs.readFileSync(filePath);
+      const content = await parsePDF(pdfBuffer);
+      questions = await generateQuizFromText(content, subject, difficulty || "medium");
+    } else if (upload.fileType === "document") {
       if (upload.mimetype === "text/plain" || upload.mimetype === "text/markdown") {
-        const content = fs.readFileSync(filePath, 'utf-8');
+        const content = fs.readFileSync(filePath, "utf-8");
         questions = await generateQuizFromText(content, subject, difficulty || "medium");
       } else {
-        return res.status(400).json({ 
-          message: "PDF quiz generation coming soon. Please upload images or text files for now." 
-        });
+        return res.status(400).json({ message: "Unsupported document type" });
       }
     } else {
       return res.status(400).json({ message: "Unsupported file type for quiz generation" });
     }
 
-    // Create quiz
     const quiz = await Quiz.create({
       userId: req.session.userId,
       uploadId,
@@ -100,26 +114,22 @@ router.post("/generate", requireAuth, async (req, res) => {
   }
 });
 
+// ================================
 // GET - Get all quizzes for user
+// ================================
 router.get("/", requireAuth, async (req, res) => {
   try {
     const { subject } = req.query;
 
     const filter = { userId: req.session.userId };
-    if (subject) {
-      filter.subject = subject;
-    }
+    if (subject) filter.subject = subject;
 
-    const quizzes = await Quiz.find(filter)
-      .sort({ createdAt: -1 })
-      .select('-questions'); // Don't send questions in list view
+    const quizzes = await Quiz.find(filter).sort({ createdAt: -1 }).select("-questions");
 
     const quizzesWithResults = await Promise.all(
       quizzes.map(async (quiz) => {
-        const result = await QuizResult.findOne({ 
-          quizId: quiz._id, 
-          userId: req.session.userId 
-        }).sort({ completedAt: -1 });
+        const result = await QuizResult.findOne({ quizId: quiz._id, userId: req.session.userId })
+          .sort({ completedAt: -1 });
 
         return {
           id: quiz._id.toString(),
@@ -145,18 +155,14 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
+// ================================
 // GET - Get quiz by ID (with questions)
+// ================================
 router.get("/:id", requireAuth, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id);
-
-    if (!quiz) {
-      return res.status(404).json({ message: "Quiz not found" });
-    }
-
-    if (quiz.userId.toString() !== req.session.userId.toString()) {
-      return res.status(403).json({ message: "Not authorized" });
-    }
+    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+    if (quiz.userId.toString() !== req.session.userId.toString()) return res.status(403).json({ message: "Not authorized" });
 
     res.json({
       id: quiz._id.toString(),
@@ -174,30 +180,22 @@ router.get("/:id", requireAuth, async (req, res) => {
   }
 });
 
+// ================================
 // POST - Submit quiz answers
+// ================================
 router.post("/:id/submit", requireAuth, async (req, res) => {
   try {
     const { answers, totalTimeTaken } = req.body;
-
-    if (!answers || !Array.isArray(answers)) {
-      return res.status(400).json({ message: "Answers are required" });
-    }
+    if (!answers || !Array.isArray(answers)) return res.status(400).json({ message: "Answers are required" });
 
     const quiz = await Quiz.findById(req.params.id);
-    if (!quiz) {
-      return res.status(404).json({ message: "Quiz not found" });
-    }
+    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+    if (quiz.userId.toString() !== req.session.userId.toString()) return res.status(403).json({ message: "Not authorized" });
 
-    if (quiz.userId.toString() !== req.session.userId.toString()) {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
-    // Calculate score
     let score = 0;
     const processedAnswers = answers.map((answer, index) => {
       const isCorrect = answer.selectedAnswer === quiz.questions[index].correctAnswer;
       if (isCorrect) score++;
-
       return {
         questionIndex: index,
         selectedAnswer: answer.selectedAnswer,
@@ -208,7 +206,6 @@ router.post("/:id/submit", requireAuth, async (req, res) => {
 
     const percentage = Math.round((score / quiz.totalQuestions) * 100);
 
-    // Save result
     const result = await QuizResult.create({
       userId: req.session.userId,
       quizId: quiz._id,
@@ -237,13 +234,13 @@ router.post("/:id/submit", requireAuth, async (req, res) => {
   }
 });
 
-// GET - Get quiz results history
+// ================================
+// GET - Quiz results history
+// ================================
 router.get("/:id/results", requireAuth, async (req, res) => {
   try {
-    const results = await QuizResult.find({ 
-      quizId: req.params.id,
-      userId: req.session.userId 
-    }).sort({ completedAt: -1 });
+    const results = await QuizResult.find({ quizId: req.params.id, userId: req.session.userId })
+      .sort({ completedAt: -1 });
 
     res.json(results.map(r => ({
       id: r._id.toString(),
@@ -259,22 +256,16 @@ router.get("/:id/results", requireAuth, async (req, res) => {
   }
 });
 
+// ================================
 // DELETE - Delete quiz
+// ================================
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id);
-    if (!quiz) {
-      return res.status(404).json({ message: "Quiz not found" });
-    }
+    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+    if (quiz.userId.toString() !== req.session.userId.toString()) return res.status(403).json({ message: "Not authorized" });
 
-    if (quiz.userId.toString() !== req.session.userId.toString()) {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
-    // Delete associated results
     await QuizResult.deleteMany({ quizId: quiz._id });
-
-    // Delete quiz
     await Quiz.findByIdAndDelete(req.params.id);
 
     res.json({ message: "Quiz deleted successfully" });

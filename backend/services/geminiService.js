@@ -67,29 +67,32 @@ Requirements:
 };
 
 // ======================
-// Generate quiz from image
+// Generate quiz from image OR PDF
 // ======================
-export const generateQuizFromImage = async (imagePath, subject, difficulty = "medium") => {
+export const generateQuizFromImage = async (filePath, subject, difficulty = "medium") => {
   try {
     const model = getModel();
 
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString("base64");
+    const fileBuffer = fs.readFileSync(filePath);
+    const base64File = fileBuffer.toString("base64");
 
-    const ext = path.extname(imagePath).toLowerCase();
+    const ext = path.extname(filePath).toLowerCase();
     const mimeTypes = {
       ".jpg": "image/jpeg",
       ".jpeg": "image/jpeg",
       ".png": "image/png",
       ".gif": "image/gif",
       ".webp": "image/webp",
+      ".pdf": "application/pdf", // ✅ Added PDF support
     };
     const mimeType = mimeTypes[ext] || "image/jpeg";
 
-    const prompt = `You are an expert teacher creating educational quizzes.
-Analyze this image which contains study notes about "${subject}".
+    const fileType = ext === '.pdf' ? 'PDF document' : 'image';
 
-Extract key concepts and generate 10 multiple-choice questions.
+    const prompt = `You are an expert teacher creating educational quizzes.
+Analyze this ${fileType} which contains study notes about "${subject}".
+
+Extract key concepts and generate exactly 10 multiple-choice questions.
 
 Requirements:
 - Difficulty: ${difficulty}
@@ -110,7 +113,7 @@ Requirements:
       {
         inlineData: {
           mimeType,
-          data: base64Image,
+          data: base64File,
         },
       },
     ]);
@@ -131,8 +134,8 @@ Requirements:
 
     return questions;
   } catch (err) {
-    console.error("Error generating quiz from image:", err);
-    throw new Error("Failed to generate quiz from image: " + err.message);
+    console.error("Error generating quiz from file:", err);
+    throw new Error("Failed to generate quiz from file: " + err.message);
   }
 };
 

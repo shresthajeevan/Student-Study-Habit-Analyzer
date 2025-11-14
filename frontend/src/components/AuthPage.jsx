@@ -170,7 +170,7 @@ export default function AuthPage({ onLogin, onSignup }) {
               <>
                 <InputField label="Email" icon={Mail} type="email" name="email" value={formData.email} onChange={handleChange} disabled={isLoading} placeholder="Enter your email" colorScheme={colorScheme} />
                 <InputField label="Password" icon={Lock} name="password" value={formData.password} onChange={handleChange} disabled={isLoading} placeholder="Enter your password" showToggle onToggle={() => setShowPassword(!showPassword)} show={showPassword} colorScheme={colorScheme} />
-                <button type="submit" disabled={isLoading} className={`w-full py-4 bg-gradient-to-r from-${colorScheme}-600 to-${colorScheme}-700 hover:from-${colorScheme}-700 hover:to-${colorScheme}-800 text-white font-bold rounded-xl transition-all transform hover:scale-[1.02] mt-6 disabled:opacity-50 disabled:cursor-not-allowed`}>
+                <button type="submit" disabled={isLoading} className={`w-full py-4 font-bold rounded-xl transition-all transform hover:scale-[1.02] mt-6 disabled:opacity-50 disabled:cursor-not-allowed ${isLogin ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white" : "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white"}`}>
                   {isLoading ? "Signing In..." : "Sign In to Your Account"}
                 </button>
               </>
@@ -180,7 +180,7 @@ export default function AuthPage({ onLogin, onSignup }) {
                 <InputField label="Email Address" icon={Mail} type="email" name="email" value={formData.email} onChange={handleChange} disabled={isLoading} placeholder="your@email.com" colorScheme={colorScheme} />
                 <InputField label="Password" icon={Lock} name="password" value={formData.password} onChange={handleChange} disabled={isLoading} placeholder="Create a password (min 6 characters)" showToggle onToggle={() => setShowPassword(!showPassword)} show={showPassword} colorScheme={colorScheme} />
                 <InputField label="Confirm Password" icon={Lock} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} disabled={isLoading} placeholder="Confirm your password" showToggle onToggle={() => setShowConfirmPassword(!showConfirmPassword)} show={showConfirmPassword} colorScheme={colorScheme} />
-                <button type="submit" disabled={isLoading} className={`w-full py-4 bg-gradient-to-r from-${colorScheme}-600 to-${colorScheme}-700 hover:from-${colorScheme}-700 hover:to-${colorScheme}-800 text-white font-bold rounded-xl transition-all transform hover:scale-[1.02] mt-6 disabled:opacity-50 disabled:cursor-not-allowed`}>
+                <button type="submit" disabled={isLoading} className={`w-full py-4 font-bold rounded-xl transition-all transform hover:scale-[1.02] mt-6 disabled:opacity-50 disabled:cursor-not-allowed ${!isLogin ? "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white" : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"}`}>
                   {isLoading ? "Creating Account..." : "Create Your Account"}
                 </button>
               </>

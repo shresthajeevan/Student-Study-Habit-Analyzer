@@ -121,7 +121,7 @@ const UploadNotes = ({ showToast }) => {
             <Upload className="w-14 h-14 text-gray-400 mb-2" />
             <h2 className="text-lg font-medium text-gray-700">Drag & Drop Files Here</h2>
             <p className="text-gray-500 text-sm">or click to browse</p>
-            <p className="text-gray-400 text-xs mt-1">Supported: PDF, TXT, Images</p>
+            <p className="text-gray-400 text-xs mt-1">Supported: TXT, Images</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -207,7 +207,7 @@ const UploadNotes = ({ showToast }) => {
             <FileText className="w-14 h-14 text-gray-500" />
             <h2 className="text-2xl font-semibold text-gray-800">How It Works</h2>
             <ul className="text-gray-700 space-y-2 text-base">
-              <li>📤 Upload your study notes (images, PDFs, text files)</li>
+              <li>📤 Upload your study notes (images, text files)</li>
               <li>🤖 AI analyzes the content automatically</li>
               <li>📝 Generate custom multiple-choice quizzes</li>
               <li>🎯 Test your knowledge and track progress</li>

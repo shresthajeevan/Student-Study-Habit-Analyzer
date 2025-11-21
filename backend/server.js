@@ -26,7 +26,8 @@ const __dirname = path.dirname(__filename);
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  process.env.FRONTEND_URL, // Your Render frontend URL
+  process.env.FRONTEND_URL, // Your Render frontend URL (if set)
+  process.env.RENDER_EXTERNAL_URL, // Render provides this automatically
 ].filter(Boolean); // Remove undefined values
 
 app.use(
@@ -34,12 +35,12 @@ app.use(
     origin: function (origin, callback) {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      // In production on Render, allow any origin (the service URL)
+      if (process.env.NODE_ENV === "production") return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
       }
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })

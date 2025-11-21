@@ -1,5 +1,5 @@
 // Frontend API for authentication - with credentials for session cookies
-const BASE_URL = "http://localhost:3000/api/auth";
+const BASE_URL = "/api/auth";
 
 export async function signup(data) {
   const res = await fetch(`${BASE_URL}/signup`, {
@@ -8,12 +8,12 @@ export async function signup(data) {
     credentials: "include", // Important: Send cookies with request
     body: JSON.stringify(data),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Signup failed");
   }
-  
+
   return res.json();
 }
 
@@ -24,12 +24,12 @@ export async function login(data) {
     credentials: "include", // Important: Send cookies with request
     body: JSON.stringify(data),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Login failed");
   }
-  
+
   return res.json();
 }
 
@@ -38,12 +38,12 @@ export async function logout() {
     method: "POST",
     credentials: "include",
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Logout failed");
   }
-  
+
   return res.json();
 }
 
@@ -52,10 +52,10 @@ export async function checkSession() {
     method: "GET",
     credentials: "include",
   });
-  
+
   if (!res.ok) {
     throw new Error("Failed to check session");
   }
-  
+
   return res.json();
 }

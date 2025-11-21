@@ -1,5 +1,5 @@
 // Frontend API for Quiz
-const BASE_URL = "http://localhost:3000/api/quizzes";
+const BASE_URL = "/api/quizzes";
 
 // POST - Generate quiz from upload (images, text, PDFs)
 export async function generateQuiz(uploadId, subject, difficulty = "medium") {
@@ -9,12 +9,12 @@ export async function generateQuiz(uploadId, subject, difficulty = "medium") {
     credentials: "include",
     body: JSON.stringify({ uploadId, subject, difficulty }),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to generate quiz");
   }
-  
+
   return res.json();
 }
 
@@ -41,7 +41,7 @@ export async function submitQuiz(quizId, answers, totalTimeTaken) {
     credentials: "include",
     body: JSON.stringify({ answers, totalTimeTaken }),
   });
-  
+
   if (!res.ok) throw new Error((await res.json()).message || "Failed to submit quiz");
   return res.json();
 }

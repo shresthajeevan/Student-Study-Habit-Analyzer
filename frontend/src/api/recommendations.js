@@ -1,5 +1,5 @@
 // Frontend API for Recommendations
-const BASE_URL = "http://localhost:3000/api/recommendations";
+const BASE_URL = "/api/recommendations";
 
 // GET - Generate AI recommendations
 export async function getRecommendations() {
@@ -7,12 +7,12 @@ export async function getRecommendations() {
     method: "GET",
     credentials: "include",
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to generate recommendations");
   }
-  
+
   return res.json();
 }
 
@@ -22,11 +22,11 @@ export async function getAvailableSubjects() {
     method: "GET",
     credentials: "include",
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to fetch subjects");
   }
-  
+
   return res.json();
 }

@@ -22,10 +22,25 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// CORS
+// CORS Configuration
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  process.env.FRONTEND_URL, // Your Render frontend URL
+].filter(Boolean); // Remove undefined values
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
@@ -55,8 +70,8 @@ app.use(
     cookie: {
       maxAge: 24 * 60 * 60 * 1000,
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production", // true in production (HTTPS)
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin in production
     },
   })
 );
@@ -69,14 +84,34 @@ app.use("/api/uploadNotes", uploadRoutes);
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/recommendations", recommendationRoutes);
 
-// 👇 Remove all "*" wildcard routes — invalid in Express 5
+// Serve built frontend in production
+if (process.env.NODE_ENV === "production") {
+  const staticPath = path.join(__dirname, "public");
+  app.use(express.static(staticPath));
+  // SPA fallback – send index.html for any non‑API route
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(staticPath, "index.html"));
+  });
+}
 
-// 404 handler (Express 5 safe)
+// Health check endpoint
+app.get("/", (req, res) => {
+  res.json({ message: "AI Study Tracker API is running!" });
+});
+
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
 });
 
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server is running on http://localhost:${PORT}`)
-);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
+});

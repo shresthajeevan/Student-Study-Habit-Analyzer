@@ -1,5 +1,5 @@
 // Frontend API for Study Goals
-const BASE_URL = "http://localhost:3000/api/goals";
+const BASE_URL = "/api/goals";
 
 // GET all goals
 export async function getAllGoals() {
@@ -7,12 +7,12 @@ export async function getAllGoals() {
     method: "GET",
     credentials: "include",
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to fetch goals");
   }
-  
+
   return res.json();
 }
 
@@ -24,12 +24,12 @@ export async function createGoal(goalData) {
     credentials: "include",
     body: JSON.stringify(goalData),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to create goal");
   }
-  
+
   return res.json();
 }
 
@@ -41,12 +41,12 @@ export async function updateGoal(id, goalData) {
     credentials: "include",
     body: JSON.stringify(goalData),
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to update goal");
   }
-  
+
   return res.json();
 }
 
@@ -56,11 +56,11 @@ export async function deleteGoal(id) {
     method: "DELETE",
     credentials: "include",
   });
-  
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.message || "Failed to delete goal");
   }
-  
+
   return res.json();
 }

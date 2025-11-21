@@ -13,7 +13,7 @@ function Dashboard({ sessions }) {
   useEffect(() => {
     const fetchQuizResults = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/quizzes', {
+        const res = await fetch('/api/quizzes', {
           method: 'GET',
           credentials: 'include',
         });

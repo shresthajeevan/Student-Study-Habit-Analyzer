@@ -17,6 +17,7 @@ import recommendationRoutes from "./routes/recommendationRoutes.js";
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 
 // __dirname fix for ES modules
 const __filename = fileURLToPath(import.meta.url);

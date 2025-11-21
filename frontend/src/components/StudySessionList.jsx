@@ -7,15 +7,15 @@ function StudySessionList({ sessions, onEditSession, onDeleteSession }) {
 
   const startEdit = (s) => {
     setEditingId(s.id);
-    
+
     // Format dates for datetime-local input
     const startFormatted = new Date(s.startTime).toISOString().slice(0, 16);
     const endFormatted = new Date(s.endTime).toISOString().slice(0, 16);
-    
-    setEditForm({ 
-      subject: s.subject, 
-      startTime: startFormatted, 
-      endTime: endFormatted 
+
+    setEditForm({
+      subject: s.subject,
+      startTime: startFormatted,
+      endTime: endFormatted
     });
   };
 
@@ -31,7 +31,7 @@ function StudySessionList({ sessions, onEditSession, onDeleteSession }) {
     }
 
     try {
-      const res = await fetch(`http://localhost:3000/api/sessions/${id}`, {
+      const res = await fetch(`/api/sessions/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ function StudySessionList({ sessions, onEditSession, onDeleteSession }) {
     if (!window.confirm('Are you sure you want to delete this session?')) return;
 
     try {
-      const res = await fetch(`http://localhost:3000/api/sessions/${id}`, {
+      const res = await fetch(`/api/sessions/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -96,7 +96,7 @@ function StudySessionList({ sessions, onEditSession, onDeleteSession }) {
 
   const Row = ({ s, mobile }) => editingId === s.id ? (
     <div className={mobile ? "space-y-4" : "contents"}>
-      {['subject','startTime','endTime'].map((key, i) => (
+      {['subject', 'startTime', 'endTime'].map((key, i) => (
         <td key={i} className={mobile ? "" : "px-6 py-4"}>
           {mobile && <label className="block text-xs font-semibold text-[#374151] mb-1">{key === 'subject' ? 'Subject' : key === 'startTime' ? 'Start Time' : 'End Time'}</label>}
           <input
@@ -174,7 +174,7 @@ function StudySessionList({ sessions, onEditSession, onDeleteSession }) {
         <table className="min-w-full">
           <thead className="bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white">
             <tr>
-              {['Subject','Start Time','End Time','Duration','Actions'].map(h => <th key={h} className="px-6 py-3 text-left text-xs font-semibold uppercase">{h}</th>)}
+              {['Subject', 'Start Time', 'End Time', 'Duration', 'Actions'].map(h => <th key={h} className="px-6 py-3 text-left text-xs font-semibold uppercase">{h}</th>)}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-[#d1d5db]">

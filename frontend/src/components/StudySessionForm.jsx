@@ -30,11 +30,10 @@ const InputField = ({
       onFocus={onFocus}
       onBlur={onBlur}
       placeholder={name === 'subject' ? 'e.g., Mathematics, Physics, History' : ''}
-      className={`w-full px-4 py-3 border-2 rounded-lg outline-none bg-white transition-all duration-200 ${
-        activeTooltip === name && !isLoggedIn
+      className={`w-full px-4 py-3 border-2 rounded-lg outline-none bg-white transition-all duration-200 ${activeTooltip === name && !isLoggedIn
           ? 'border-orange-400 ring-2 ring-orange-100'
           : 'border-[#d1d5db] focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]'
-      }`}
+        }`}
     />
     {activeTooltip === name && !isLoggedIn && (
       <div className="absolute -top-2 left-0 transform -translate-y-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm py-2 px-4 rounded-lg z-10 whitespace-nowrap flex items-center gap-2 animate-in fade-in-0 zoom-in-95">
@@ -83,7 +82,7 @@ function StudySessionForm({ onAddSession, isLoggedIn, showToast }) {
     }
 
     try {
-      const res = await fetch('http://localhost:3000/api/sessions', {
+      const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

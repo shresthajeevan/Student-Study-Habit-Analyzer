@@ -1,175 +1,252 @@
-import { useState, useCallback } from 'react';
-import { Plus, BookOpen, Clock, Calendar, LogIn } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Plus, BookOpen, Play, Square, Timer, Calendar } from 'lucide-react';
 
-const InputField = ({
-  label,
-  icon: Icon,
-  iconBg,
-  iconColor,
-  type,
-  name,
-  value,
-  onChange,
-  onFocus,
-  onBlur,
-  isLoggedIn,
-  activeTooltip,
-}) => (
-  <div className="relative">
-    <label className="flex items-center gap-2 text-sm font-semibold text-[#374151] mb-2">
-      <div className={`w-5 h-5 ${iconBg} rounded flex items-center justify-center`}>
-        <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
-      </div>
-      {label} <span className="text-[#ef4444]">*</span>
-    </label>
-    <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      placeholder={name === 'subject' ? 'e.g., Mathematics, Physics, History' : ''}
-      className={`w-full px-4 py-3 border-2 rounded-lg outline-none bg-white transition-all duration-200 ${activeTooltip === name && !isLoggedIn
-          ? 'border-orange-400 ring-2 ring-orange-100'
-          : 'border-[#d1d5db] focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]'
-        }`}
-    />
-    {activeTooltip === name && !isLoggedIn && (
-      <div className="absolute -top-2 left-0 transform -translate-y-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm py-2 px-4 rounded-lg z-10 whitespace-nowrap flex items-center gap-2 animate-in fade-in-0 zoom-in-95">
-        <LogIn className="w-4 h-4" />
-        Sign in to start tracking sessions
-        <div className="absolute bottom-0 left-6 transform -translate-x-1/2 translate-y-1/2 w-3 h-3 bg-orange-500 rotate-45"></div>
-      </div>
-    )}
-  </div>
-);
+const BORDER = "#d8d8d8";
+const BORDER_LIGHT = "#f4f4f4";
+const TEXT_PRIMARY = "#222";
+const PRIMARY = "#2e71f0";
+const PRIMARY_LIGHT = "#f5f9ff";
 
 function StudySessionForm({ onAddSession, isLoggedIn, showToast }) {
   const [formData, setFormData] = useState({ subject: '', startTime: '', endTime: '' });
-  const [activeTooltip, setActiveTooltip] = useState('');
+  const [mode, setMode] = useState('manual');
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [timerStartTime, setTimerStartTime] = useState(null);
+  const timerIntervalRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, []);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
-    const newValue = name === 'subject' ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+    const newValue = name === 'subject'
+      ? value.charAt(0).toUpperCase() + value.slice(1)
+      : value;
     setFormData((prev) => ({ ...prev, [name]: newValue }));
   }, []);
 
-  const handleInputFocus = useCallback((name) => {
-    if (!isLoggedIn) setActiveTooltip(name);
-  }, [isLoggedIn]);
+  const formatTime = (seconds) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
-  const handleInputBlur = useCallback(() => setActiveTooltip(''), []);
+  const startTimer = () => {
+    if (!isLoggedIn) return showToast('Please login to start timer', 'error');
+    if (!formData.subject.trim()) return showToast('Please enter a subject first', 'error');
+
+    const now = new Date();
+    setTimerStartTime(now);
+    setTimerRunning(true);
+    setElapsedSeconds(0);
+
+    timerIntervalRef.current = setInterval(() => setElapsedSeconds(prev => prev + 1), 1000);
+    showToast('Timer started!');
+  };
+
+  const stopTimer = () => {
+    clearInterval(timerIntervalRef.current);
+    timerIntervalRef.current = null;
+
+    const end = new Date();
+
+    setFormData(prev => ({
+      ...prev,
+      startTime: timerStartTime.toISOString().slice(0, 16),
+      endTime: end.toISOString().slice(0, 16),
+    }));
+
+    setTimerRunning(false);
+    showToast(`Session recorded (${formatTime(elapsedSeconds)})`);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!isLoggedIn) {
-      showToast('Please login to add study sessions', 'error');
-      return;
-    }
-
-    if (!formData.subject.trim() || !formData.startTime || !formData.endTime) {
-      showToast('Please fill in all fields', 'error');
-      return;
-    }
+    if (!isLoggedIn) return showToast('Please login first', 'error');
+    if (!formData.subject || !formData.startTime || !formData.endTime)
+      return showToast('Fill in all fields', 'error');
 
     const start = new Date(formData.startTime);
     const end = new Date(formData.endTime);
-    if (end <= start) {
-      showToast('End time must be after start time', 'error');
-      return;
-    }
+    if (end <= start) return showToast('End time must be later', 'error');
 
     try {
       const res = await fetch('/api/sessions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Important: Send session cookie
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to add session');
+      if (!res.ok) throw new Error(data.message);
 
-      onAddSession(data); // Update UI with new session
+      onAddSession(data);
       setFormData({ subject: '', startTime: '', endTime: '' });
-      showToast('Session added successfully!');
+      setElapsedSeconds(0);
+      setTimerStartTime(null);
+      showToast('Session added!');
     } catch (err) {
-      console.error(err);
       showToast(err.message, 'error');
     }
   };
 
   return (
-    <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-xl p-6 border border-[#e5e7eb] mb-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-[#3b82f6] to-[#2563eb] rounded-lg flex items-center justify-center text-white">
-          <Plus className="w-6 h-6" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-[#111827]">Log Study Session</h2>
-          <p className="text-sm text-[#4b5563]">Track your learning progress</p>
+    <div className="rounded-2xl overflow-hidden mb-6 w-full" style={{ border: `1px solid ${BORDER}`, background: "white" }}>
+
+      {/* HEADER */}
+      <div className="px-6 py-4" style={{ background: PRIMARY }}>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+
+          {/* LEFT TITLE */}
+          <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)" }}>
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Study Session</h2>
+              <p className="text-white/90 text-sm">Track your learning time</p>
+            </div>
+          </div>
+
+          {/* MODE TOGGLE */}
+          <div className="flex gap-2 p-1 rounded-lg flex-wrap justify-center sm:justify-end" style={{ background: "rgba(255,255,255,0.15)" }}>
+            <button
+              type="button"
+              onClick={() => setMode('timer')}
+              className={`flex-1 min-w-[100px] text-center py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2
+                ${mode === 'timer' ? 'bg-white text-black' : 'text-white/80'}`}
+            >
+              <Timer className="w-4 h-4" /> Timer
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode('manual')}
+              className={`flex-1 min-w-[100px] text-center py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2
+                ${mode === 'manual' ? 'bg-white text-black' : 'text-white/80'}`}
+            >
+              <Calendar className="w-4 h-4" /> Manual
+            </button>
+          </div>
+
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <InputField
-          label="Subject"
-          icon={BookOpen}
-          iconBg="bg-green-100"
-          iconColor="text-green-600"
-          type="text"
-          name="subject"
-          value={formData.subject}
-          onChange={handleInputChange}
-          onFocus={() => handleInputFocus('subject')}
-          onBlur={handleInputBlur}
-          isLoggedIn={isLoggedIn}
-          activeTooltip={activeTooltip}
-        />
+      {/* FORM */}
+      <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <InputField
-            label="Start Time"
-            icon={Clock}
-            iconBg="bg-orange-100"
-            iconColor="text-orange-600"
-            type="datetime-local"
-            name="startTime"
-            value={formData.startTime}
+        {/* SUBJECT */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
+          <input
+            type="text"
+            name="subject"
+            value={formData.subject}
             onChange={handleInputChange}
-            onFocus={() => handleInputFocus('startTime')}
-            onBlur={handleInputBlur}
-            isLoggedIn={isLoggedIn}
-            activeTooltip={activeTooltip}
-          />
-
-          <InputField
-            label="End Time"
-            icon={Calendar}
-            iconBg="bg-purple-100"
-            iconColor="text-purple-600"
-            type="datetime-local"
-            name="endTime"
-            value={formData.endTime}
-            onChange={handleInputChange}
-            onFocus={() => handleInputFocus('endTime')}
-            onBlur={handleInputBlur}
-            isLoggedIn={isLoggedIn}
-            activeTooltip={activeTooltip}
+            placeholder="e.g., Mathematics, Physics"
+            className="w-full px-4 py-3 rounded-xl outline-none"
+            style={{ border: `1px solid ${BORDER}`, background: "white", color: TEXT_PRIMARY }}
           />
         </div>
 
-        <button
-          type="submit"
-          className="bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:from-[#2563eb] hover:to-[#1d4ed8] text-white px-6 py-3 rounded-lg font-semibold transition-all w-full md:w-auto flex items-center justify-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Add Session
-        </button>
+        {/* TIMER MODE */}
+        {mode === 'timer' ? (
+          <div className="space-y-4">
+
+            {/* TIMER DISPLAY */}
+            <div className="rounded-xl p-6" style={{ background: "white", border: `1px solid ${BORDER}` }}>
+              <div className="text-center">
+                <div className="font-mono font-bold mb-2" style={{ fontSize: "clamp(2rem, 6vw, 4rem)", color: PRIMARY }}>
+                  {formatTime(elapsedSeconds)}
+                </div>
+                {timerStartTime && timerRunning && (
+                  <p className="text-sm font-medium" style={{ color: TEXT_PRIMARY }}>
+                    Started at {timerStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* SIDE-BY-SIDE BUTTONS */}
+            <div className="flex gap-3 flex-wrap">
+              {!timerRunning ? (
+                <button
+                  type="button"
+                  onClick={startTimer}
+                  className="flex-1 min-w-[120px] text-white px-4 py-3 rounded-lg text-sm font-semibold"
+                  style={{ background: PRIMARY }}
+                >
+                  <div className="flex justify-center items-center gap-2"><Play className="w-4 h-4" /> Start</div>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={stopTimer}
+                  className="flex-1 min-w-[120px] text-white px-4 py-3 rounded-lg text-sm font-semibold"
+                  style={{ background: "#d9534f" }}
+                >
+                  <div className="flex justify-center items-center gap-2"><Square className="w-4 h-4" /> Stop</div>
+                </button>
+              )}
+
+              <button
+                type="submit"
+                disabled={timerRunning}
+                className="flex-1 min-w-[120px] text-white px-4 py-3 rounded-lg text-sm font-semibold"
+                style={{ background: PRIMARY, opacity: timerRunning ? 0.6 : 1, cursor: timerRunning ? "not-allowed" : "pointer" }}
+              >
+                <div className="flex justify-center items-center gap-2"><Plus className="w-4 h-4" /> Add</div>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* MANUAL MODE */
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time</label>
+                <input
+                  type="datetime-local"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl outline-none"
+                  style={{ border: `1px solid ${BORDER}`, background: "white", color: TEXT_PRIMARY }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">End Time</label>
+                <input
+                  type="datetime-local"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 rounded-xl outline-none"
+                  style={{ border: `1px solid ${BORDER}`, background: "white", color: TEXT_PRIMARY }}
+                />
+              </div>
+            </div>
+
+            {/* ADD BUTTON */}
+            <div className="flex gap-3 mt-4 flex-wrap">
+              <button
+                type="submit"
+                className="flex-1 min-w-[120px] text-white px-4 py-3 rounded-lg text-sm font-semibold"
+                style={{ background: PRIMARY }}
+              >
+                <div className="flex justify-center items-center gap-2"><Plus className="w-4 h-4" /> Add</div>
+              </button>
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );

@@ -23,7 +23,10 @@ function Quiz({ showToast }) {
       setQuizzes(data);
     } catch (err) {
       console.error(err);
-      showToast?.(err.message || "Failed to fetch quizzes", "error");
+      // Only show toast for non-auth errors
+      if (!err.message?.includes("login")) {
+        showToast?.(err.message || "Failed to fetch quizzes", "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -286,7 +289,7 @@ function Quiz({ showToast }) {
             <div key={idx} className="bg-white rounded-xl p-4 border border-gray-200">
               <p className="font-semibold mb-2">{idx + 1}. {q.question}</p>
               <p className={`font-medium ${quizResults.answers[idx]?.isCorrect ? "text-green-600" : "text-red-600"}`}>
-                Your Answer: {q.options[quizResults.answers[idx]?.selectedAnswer] || "Unanswered"} 
+                Your Answer: {q.options[quizResults.answers[idx]?.selectedAnswer] || "Unanswered"}
                 {quizResults.answers[idx]?.isCorrect ? " ✔" : " ✖"}
               </p>
               {q.explanation && (

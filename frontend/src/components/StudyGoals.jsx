@@ -29,7 +29,10 @@ export const StudyGoals = ({ sessions, showToast }) => {
       setGoals(data);
     } catch (err) {
       console.error("Error fetching goals:", err);
-      showToast?.(err.message, "error");
+      // Only show toast for non-auth errors
+      if (!err.message?.includes("login")) {
+        showToast?.(err.message, "error");
+      }
     } finally {
       setLoading(false);
     }
@@ -79,7 +82,7 @@ export const StudyGoals = ({ sessions, showToast }) => {
 
   const handleDelete = async (id) => {
     if (!confirm("Are you sure?")) return;
-    
+
     try {
       await deleteGoal(id);
       setGoals(prev => prev.filter(g => g.id !== id));

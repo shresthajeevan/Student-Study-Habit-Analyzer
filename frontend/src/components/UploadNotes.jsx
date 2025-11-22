@@ -45,12 +45,12 @@ const UploadNotes = ({ showToast }) => {
     try {
       setUploading(true);
       const response = await uploadFiles(files);
-      
+
       showToast?.(`Successfully uploaded ${response.files.length} file(s)!`);
-      
+
       // Store uploaded files for quiz generation
       setUploadedFiles(response.files);
-      
+
       // Clean up previews and clear files
       files.forEach((f) => f.preview && URL.revokeObjectURL(f.preview));
       setFiles([]);
@@ -71,16 +71,16 @@ const UploadNotes = ({ showToast }) => {
 
     const difficulty = prompt("Enter difficulty (easy, medium, hard):", "medium");
     const validDifficulties = ["easy", "medium", "hard"];
-    const finalDifficulty = validDifficulties.includes(difficulty?.toLowerCase()) 
-      ? difficulty.toLowerCase() 
+    const finalDifficulty = validDifficulties.includes(difficulty?.toLowerCase())
+      ? difficulty.toLowerCase()
       : "medium";
 
     try {
       setGeneratingQuiz(true);
       const response = await generateQuiz(uploadedFile.id, subject.trim(), finalDifficulty);
-      
+
       showToast?.(`Quiz generated successfully! ${response.quiz.totalQuestions} questions created.`);
-      
+
       // Remove from uploaded files list after quiz generation
       setUploadedFiles(prev => prev.filter(f => f.id !== uploadedFile.id));
     } catch (err) {
@@ -92,17 +92,14 @@ const UploadNotes = ({ showToast }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50"
-      style={{ marginLeft: "250px", overflow: "hidden" }}
-    >
-      <div className="flex flex-col lg:flex-row gap-8 w-[90%] h-[85%]">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 p-4 md:p-8">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 max-w-7xl mx-auto">
         {/* Upload Panel */}
-        <div className="flex-1 flex flex-col bg-white rounded-3xl p-8 gap-6">
+        <div className="flex-1 flex flex-col bg-white rounded-3xl p-6 md:p-8 gap-6">
           {/* Header */}
           <div className="flex flex-col items-center gap-2 border-b border-gray-200 pb-4">
             <Sparkles className="w-6 h-6 text-yellow-400" />
-            <h1 className="text-3xl font-bold text-gray-800">Upload Study Notes</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Upload Study Notes</h1>
             <p className="text-gray-600 text-sm text-center">
               Turn your notes into AI-powered quizzes instantly
             </p>
@@ -116,12 +113,12 @@ const UploadNotes = ({ showToast }) => {
               handleFiles(e.dataTransfer.files);
             }}
             onDragOver={(e) => e.preventDefault()}
-            className="flex flex-col items-center justify-center border-2 border-gray-300 rounded-xl p-8 hover:bg-gray-50 transition cursor-pointer gap-2"
+            className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-6 md:p-8 hover:bg-gray-50 transition cursor-pointer gap-2"
           >
-            <Upload className="w-14 h-14 text-gray-400 mb-2" />
-            <h2 className="text-lg font-medium text-gray-700">Drag & Drop Files Here</h2>
+            <Upload className="w-12 h-12 md:w-14 md:h-14 text-gray-400 mb-2" />
+            <h2 className="text-base md:text-lg font-medium text-gray-700">Drag & Drop Files Here</h2>
             <p className="text-gray-500 text-sm">or click to browse</p>
-            <p className="text-gray-400 text-xs mt-1">Supported: TXT, Images</p>
+            <p className="text-gray-400 text-xs mt-1">Supported: TXT, Images, PDF</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -148,12 +145,12 @@ const UploadNotes = ({ showToast }) => {
               </h3>
               <div className="space-y-2">
                 {uploadedFiles.map((file) => (
-                  <div key={file.id} className="flex items-center justify-between p-2 bg-white rounded-lg">
+                  <div key={file.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 bg-white rounded-lg">
                     <span className="text-sm text-gray-700 truncate flex-1">{file.originalName}</span>
                     <button
                       onClick={() => handleGenerateQuiz(file)}
                       disabled={generatingQuiz}
-                      className="ml-2 px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+                      className="w-full sm:w-auto px-3 py-1 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
                     >
                       {generatingQuiz ? "Generating..." : "Generate Quiz"}
                     </button>
@@ -165,7 +162,7 @@ const UploadNotes = ({ showToast }) => {
         </div>
 
         {/* Right Side: Preview + Info */}
-        <div className="flex flex-col gap-6 w-[40%]">
+        <div className="flex flex-col gap-6 lg:w-[40%]">
           {/* Preview Card */}
           <div className="bg-white rounded-3xl p-6 border border-gray-200 flex flex-col gap-4">
             <h2 className="text-xl font-semibold text-gray-800">Your Selected Files</h2>
@@ -204,9 +201,9 @@ const UploadNotes = ({ showToast }) => {
 
           {/* Info Card */}
           <div className="bg-white rounded-3xl p-6 border border-gray-200 flex flex-col gap-4">
-            <FileText className="w-14 h-14 text-gray-500" />
-            <h2 className="text-2xl font-semibold text-gray-800">How It Works</h2>
-            <ul className="text-gray-700 space-y-2 text-base">
+            <FileText className="w-12 h-12 md:w-14 md:h-14 text-gray-500" />
+            <h2 className="text-xl md:text-2xl font-semibold text-gray-800">How It Works</h2>
+            <ul className="text-gray-700 space-y-2 text-sm md:text-base">
               <li>📤 Upload your study notes (images, text files)</li>
               <li>🤖 AI analyzes the content automatically</li>
               <li>📝 Generate custom multiple-choice quizzes</li>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, BarChart3, Lightbulb, FileQuestion, FileText, Target } from "lucide-react";
+import { BookOpen, BarChart3, Lightbulb, FileQuestion, FileText, Target, Menu, X } from "lucide-react";
 import StudySessionForm from "./components/StudySessionForm";
 import StudySessionList from "./components/StudySessionList";
 import Dashboard from "./components/Dashboard";
@@ -41,6 +41,7 @@ function App() {
   const [sessions, setSessions] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
   const [showAuthPage, setShowAuthPage] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const showToast = (message, type = "success") => setToast({ show: true, message, type });
 
@@ -74,7 +75,7 @@ function App() {
 
   const handleAuth = async (userData, isSignup) => {
     setUser(userData);
-    showToast(`${isSignup ? "Welcome" : "Welcome back"}, ${userData.username}!`);
+    showToast(`${isSignup ? "Welcome" : "Welcome back"}, ${userData.username} !`);
     setShowAuthPage(false);
     setActiveTab("dashboard");
     if (!isSignup) await fetchSessions();
@@ -180,8 +181,35 @@ function App() {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-40">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="text-lg font-bold text-gray-900">AI Study Tracker</h1>
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 h-screen fixed flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
+      <aside className={`
+        w-64 h-screen fixed flex-shrink-0 bg-white border-r border-gray-200 flex flex-col z-50 transition-transform duration-300
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
             <BookOpen className="w-6 h-6 text-white" />
@@ -198,7 +226,10 @@ function App() {
               key={tab.id}
               tab={tab}
               active={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setMobileMenuOpen(false);
+              }}
             />
           ))}
         </nav>
@@ -232,7 +263,7 @@ function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 overflow-auto ml-64">{renderContent()}</main>
+      <main className="flex-1 p-4 md:p-8 overflow-auto md:ml-64 pt-20 md:pt-8">{renderContent()}</main>
 
       {/* Toast */}
       <Toast
